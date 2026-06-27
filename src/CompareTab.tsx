@@ -63,7 +63,7 @@ type RowProps = {
   expanded: string | null;
   onToggle: (k: string) => void;
   // numeric mode
-  v1?: number; v2?: number; unit?: string;
+  v1?: number; v2?: number; unit?: string; globalMax?: number;
   // text mode
   isText?: boolean; t1?: string; t2?: string;
 };
@@ -82,8 +82,6 @@ const MAX_VALS: Record<string, number> = {
   vitD:     Math.max(...vitaminData.map(v => v.vitD)),
 };
 
-// Suppress unused variable warning for MAX_VALS — used as documentation / future use
-void MAX_VALS;
 
 function MiniBar({ val, maxVal, color }: { val: number; maxVal: number; color: string }) {
   const pct = maxVal > 0 ? Math.min((val / maxVal) * 100, 100) : 0;
@@ -94,9 +92,9 @@ function MiniBar({ val, maxVal, color }: { val: number; maxVal: number; color: s
   );
 }
 
-function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, isText, t1 = '', t2 = '' }: RowProps) {
+function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, globalMax, isText, t1 = '', t2 = '' }: RowProps) {
   const hasGuide = !!guideKey;
-  const maxV = Math.max(v1 ?? 0, v2 ?? 0);
+  const maxV = globalMax ?? Math.max(v1 ?? 0, v2 ?? 0);
   return (
     <div className="border-b border-[#E8EAF0] last:border-0">
       {/* Header row: label | A col | B col */}
@@ -208,7 +206,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         scales: {
           r: {
             min: 0, max: 100,
@@ -268,7 +266,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
           <span className="text-xs font-bold text-[#111827]">Vital B-Complex</span>
           <span className="text-[10px] text-gray-400">피로회복 & 신경계 핵심</span>
         </div>
-        <ColHeader />
+        {ColHeader()}
 
         {/* B1 row — custom (text + bar combined) */}
         <div className="border-b border-[#E8EAF0]">
@@ -287,7 +285,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className="text-sm font-semibold mt-1" style={{ color: p1.b1_total >= p2.b1_total ? BLUE : '#9CA3AF' }}>
                 {p1.b1_total}mg{p1.b1_total > p2.b1_total && <span className="text-[10px] ml-0.5" style={{ color: BLUE }}> ↑</span>}
               </p>
-              <MiniBar val={p1.b1_total} maxVal={Math.max(p1.b1_total, p2.b1_total)} color={BLUE} />
+              <MiniBar val={p1.b1_total} maxVal={MAX_VALS.b1_total} color={BLUE} />
             </div>
             <div className="px-3 py-2.5 border-l border-[#E8EAF0] border-b border-[#F1F5F9]">
               <p className={`text-[10px] leading-tight ${isActive(p2.b1_info) ? 'text-amber-700' : 'text-gray-400'}`}>
@@ -296,7 +294,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className="text-sm font-semibold mt-1" style={{ color: p2.b1_total >= p1.b1_total ? AMBER : '#9CA3AF' }}>
                 {p2.b1_total}mg{p2.b1_total > p1.b1_total && <span className="text-[10px] ml-0.5" style={{ color: AMBER }}> ↑</span>}
               </p>
-              <MiniBar val={p2.b1_total} maxVal={Math.max(p1.b1_total, p2.b1_total)} color={AMBER} />
+              <MiniBar val={p2.b1_total} maxVal={MAX_VALS.b1_total} color={AMBER} />
             </div>
           </button>
           {expanded === 'b1' && <div className="px-3 pb-2">{guides.b1}</div>}
@@ -335,11 +333,11 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
           <span className="text-xs font-bold text-[#111827]">Support B-Complex</span>
           <span className="text-[10px] text-gray-400">대사 보조</span>
         </div>
-        <ColHeader />
-        <CompareRow label="B3 니코틴산" sub="혈관 확장" expanded={expanded} onToggle={toggle} v1={p1.b3} v2={p2.b3} unit="mg" />
-        <CompareRow label="B5 판토텐산" sub="부신·스트레스" expanded={expanded} onToggle={toggle} v1={p1.b5} v2={p2.b5} unit="mg" />
-        <CompareRow label="B7 비오틴"   sub="모발·혈당" expanded={expanded} onToggle={toggle} v1={p1.b7} v2={p2.b7} unit="mg" />
-        <CompareRow label="B9 폴산"     sub="세포분열·빈혈" expanded={expanded} onToggle={toggle} v1={p1.b9} v2={p2.b9} unit="mg" />
+        {ColHeader()}
+        <CompareRow label="B3 니코틴산" sub="혈관 확장" expanded={expanded} onToggle={toggle} v1={p1.b3} v2={p2.b3} unit="mg" globalMax={MAX_VALS.b3} />
+        <CompareRow label="B5 판토텐산" sub="부신·스트레스" expanded={expanded} onToggle={toggle} v1={p1.b5} v2={p2.b5} unit="mg" globalMax={MAX_VALS.b5} />
+        <CompareRow label="B7 비오틴"   sub="모발·혈당" expanded={expanded} onToggle={toggle} v1={p1.b7} v2={p2.b7} unit="mg" globalMax={MAX_VALS.b7} />
+        <CompareRow label="B9 폴산"     sub="세포분열·빈혈" expanded={expanded} onToggle={toggle} v1={p1.b9} v2={p2.b9} unit="mg" globalMax={MAX_VALS.b9} />
       </div>
 
       {/* Organ Support */}
@@ -349,11 +347,11 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
           <span className="text-xs font-bold text-[#111827]">Organ Support</span>
           <span className="text-[10px] text-gray-400">간·근육·면역</span>
         </div>
-        <ColHeader />
-        <CompareRow label="UDCA" sub="간 기능 보조" guideKey="udca" expanded={expanded} onToggle={toggle} v1={p1.udca} v2={p2.udca} unit="mg" />
-        <CompareRow label="마그네슘"  sub="근육 이완·눈떨림" guideKey="mg" expanded={expanded} onToggle={toggle} v1={p1.mg}  v2={p2.mg}  unit="mg" />
-        <CompareRow label="아연"     sub="면역·남성 활력" expanded={expanded} onToggle={toggle} v1={p1.zn}  v2={p2.zn}  unit="mg" />
-        <CompareRow label="비타민D"  sub="뼈 건강·면역" expanded={expanded} onToggle={toggle} v1={p1.vitD} v2={p2.vitD} unit="IU" />
+        {ColHeader()}
+        <CompareRow label="UDCA" sub="간 기능 보조" guideKey="udca" expanded={expanded} onToggle={toggle} v1={p1.udca} v2={p2.udca} unit="mg" globalMax={MAX_VALS.udca} />
+        <CompareRow label="마그네슘"  sub="근육 이완·눈떨림" guideKey="mg" expanded={expanded} onToggle={toggle} v1={p1.mg}  v2={p2.mg}  unit="mg" globalMax={MAX_VALS.mg} />
+        <CompareRow label="아연"     sub="면역·남성 활력" expanded={expanded} onToggle={toggle} v1={p1.zn}  v2={p2.zn}  unit="mg" globalMax={MAX_VALS.zn} />
+        <CompareRow label="비타민D"  sub="뼈 건강·면역" expanded={expanded} onToggle={toggle} v1={p1.vitD} v2={p2.vitD} unit="IU" globalMax={MAX_VALS.vitD} />
       </div>
 
       {/* Pharmacist Note */}
