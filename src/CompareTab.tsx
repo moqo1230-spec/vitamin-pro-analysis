@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { VitaminProduct } from './data';
 import { vitaminData, isActive, isB12Active, getRadarValues } from './data';
+import { THRESHOLD_MAP, EVIDENCE_NOTE } from './evidence';
 
 Chart.register(RadarController, LineElement, PointElement, RadialLinearScale, Filler, Legend, Tooltip);
 
@@ -66,6 +67,9 @@ type RowProps = {
   v1?: number; v2?: number; unit?: string; globalMax?: number;
   // text mode
   isText?: boolean; t1?: string; t2?: string;
+  // evidence
+  thresholdPct?: number;
+  evidenceNote?: 'insufficient' | 'in_vitro';
 };
 
 const BLUE  = '#2563EB';
@@ -83,16 +87,25 @@ const MAX_VALS: Record<string, number> = {
 };
 
 
-function MiniBar({ val, maxVal, color }: { val: number; maxVal: number; color: string }) {
+function MiniBar({ val, maxVal, color, thresholdPct }: {
+  val: number; maxVal: number; color: string; thresholdPct?: number;
+}) {
   const pct = maxVal > 0 ? Math.min((val / maxVal) * 100, 100) : 0;
   return (
-    <div className="h-1 bg-gray-100 rounded-full mt-1">
+    <div className="h-1 bg-gray-100 rounded-full mt-1 relative">
       <div className="h-1 rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      {thresholdPct !== undefined && (
+        <div
+          className="absolute top-[-2px] w-px h-[5px] bg-orange-400 rounded-sm"
+          style={{ left: `${Math.min(thresholdPct, 98)}%` }}
+          title={`임상 근거 기준선`}
+        />
+      )}
     </div>
   );
 }
 
-function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, globalMax, isText, t1 = '', t2 = '' }: RowProps) {
+function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, globalMax, isText, t1 = '', t2 = '', thresholdPct, evidenceNote }: RowProps) {
   const hasGuide = !!guideKey;
   const maxV = globalMax ?? Math.max(v1 ?? 0, v2 ?? 0);
   return (
@@ -105,7 +118,15 @@ function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, gl
       >
         <div className="px-3 py-2.5 bg-[#F8F9FC] flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-[#111827] leading-tight">{label}</p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs font-semibold text-[#111827] leading-tight">{label}</p>
+              {evidenceNote && (
+                <span
+                  title={evidenceNote === 'insufficient' ? '임상 근거 불충분 (Cochrane 메타분석)' : '시험관 실험 수준 (임상 용량 미달)'}
+                  className="text-[10px] cursor-help"
+                >⚠️</span>
+              )}
+            </div>
             <p className="text-[9px] text-gray-400 mt-0.5">{sub}</p>
           </div>
           {hasGuide && (expanded === guideKey
@@ -127,7 +148,7 @@ function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, gl
               {(v1 ?? 0) > 0 && <span className="text-[9px] font-normal text-gray-400 ml-0.5">{unit}</span>}
               {(v1 ?? 0) > (v2 ?? 0) && (v1 ?? 0) > 0 && <span className="text-[10px] ml-0.5" style={{ color: BLUE }}> ↑</span>}
             </p>
-            {(v1 ?? 0) > 0 && <MiniBar val={v1 ?? 0} maxVal={maxV} color={BLUE} />}
+            {(v1 ?? 0) > 0 && <MiniBar val={v1 ?? 0} maxVal={maxV} color={BLUE} thresholdPct={thresholdPct} />}
           </div>
         )}
         {/* B cell */}
@@ -144,7 +165,7 @@ function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, gl
               {(v2 ?? 0) > 0 && <span className="text-[9px] font-normal text-gray-400 ml-0.5">{unit}</span>}
               {(v2 ?? 0) > (v1 ?? 0) && (v2 ?? 0) > 0 && <span className="text-[10px] ml-0.5" style={{ color: AMBER }}> ↑</span>}
             </p>
-            {(v2 ?? 0) > 0 && <MiniBar val={v2 ?? 0} maxVal={maxV} color={AMBER} />}
+            {(v2 ?? 0) > 0 && <MiniBar val={v2 ?? 0} maxVal={maxV} color={AMBER} thresholdPct={thresholdPct} />}
           </div>
         )}
       </button>
@@ -289,7 +310,9 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className="text-sm font-semibold mt-1" style={{ color: p1.b1_total > p2.b1_total ? BLUE : '#9CA3AF' }}>
                 {p1.b1_total}mg{p1.b1_total > p2.b1_total && <span className="text-[10px] ml-0.5" style={{ color: BLUE }}> ↑</span>}
               </p>
-              <MiniBar val={p1.b1_total} maxVal={MAX_VALS.b1_total} color={BLUE} />
+              <MiniBar val={p1.b1_total} maxVal={MAX_VALS.b1_total} color={BLUE} thresholdPct={
+                THRESHOLD_MAP['b1'] ? (THRESHOLD_MAP['b1'].value / MAX_VALS.b1_total) * 100 : undefined
+              } />
             </div>
             <div className="px-3 py-2.5 border-l border-[#E8EAF0] border-b border-[#F1F5F9]">
               <p className={`text-[10px] leading-tight ${isActive(p2.b1_info) ? 'text-amber-700' : 'text-gray-400'}`}>
@@ -298,7 +321,9 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className="text-sm font-semibold mt-1" style={{ color: p2.b1_total > p1.b1_total ? AMBER : '#9CA3AF' }}>
                 {p2.b1_total}mg{p2.b1_total > p1.b1_total && <span className="text-[10px] ml-0.5" style={{ color: AMBER }}> ↑</span>}
               </p>
-              <MiniBar val={p2.b1_total} maxVal={MAX_VALS.b1_total} color={AMBER} />
+              <MiniBar val={p2.b1_total} maxVal={MAX_VALS.b1_total} color={AMBER} thresholdPct={
+                THRESHOLD_MAP['b1'] ? (THRESHOLD_MAP['b1'].value / MAX_VALS.b1_total) * 100 : undefined
+              } />
             </div>
           </button>
           {expanded === 'b1' && <div className="px-3 pb-2">{guides.b1}</div>}
@@ -352,8 +377,8 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
           <span className="text-[10px] text-gray-400">간·근육·면역</span>
         </div>
         {ColHeader()}
-        <CompareRow label="UDCA" sub="간 기능 보조" guideKey="udca" expanded={expanded} onToggle={toggle} v1={p1.udca} v2={p2.udca} unit="mg" globalMax={MAX_VALS.udca} />
-        <CompareRow label="마그네슘"  sub="근육 이완·눈떨림" guideKey="mg" expanded={expanded} onToggle={toggle} v1={p1.mg}  v2={p2.mg}  unit="mg" globalMax={MAX_VALS.mg} />
+        <CompareRow label="UDCA" sub="간 기능 보조" guideKey="udca" expanded={expanded} onToggle={toggle} v1={p1.udca} v2={p2.udca} unit="mg" globalMax={MAX_VALS.udca} evidenceNote={EVIDENCE_NOTE['udca']} />
+        <CompareRow label="마그네슘"  sub="근육 이완·눈떨림" guideKey="mg" expanded={expanded} onToggle={toggle} v1={p1.mg}  v2={p2.mg}  unit="mg" globalMax={MAX_VALS.mg} evidenceNote={EVIDENCE_NOTE['mg']} />
         <CompareRow label="아연"     sub="면역·남성 활력" expanded={expanded} onToggle={toggle} v1={p1.zn}  v2={p2.zn}  unit="mg" globalMax={MAX_VALS.zn} />
         <CompareRow label="비타민D"  sub="뼈 건강·면역" expanded={expanded} onToggle={toggle} v1={p1.vitD} v2={p2.vitD} unit="IU" globalMax={MAX_VALS.vitD} />
       </div>
