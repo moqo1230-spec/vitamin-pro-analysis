@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FlaskConical, Check, Copy, CheckCheck, ArrowLeftRight, LayoutGrid, Sparkles } from 'lucide-react';
+import { FlaskConical, Check, Copy, CheckCheck, ArrowLeftRight, LayoutGrid, Sparkles, BookOpen } from 'lucide-react';
 import { vitaminData } from './data';
 import CompareTab from './CompareTab';
 import FullTable from './FullTable';
 import RecommendTab from './RecommendTab';
+import EvidenceTab from './EvidenceTab';
 
-type Tab = 'compare' | 'table' | 'recommend';
+type Tab = 'compare' | 'table' | 'recommend' | 'evidence';
 
 const VitaminComparator = () => {
   const [p1Id, setP1Id] = useState(1);
@@ -71,6 +72,7 @@ const VitaminComparator = () => {
     { key: 'compare',   label: '1:1 비교',   icon: <ArrowLeftRight size={13} /> },
     { key: 'table',     label: '전체 테이블', icon: <LayoutGrid size={13} /> },
     { key: 'recommend', label: '추천',        icon: <Sparkles size={13} /> },
+    { key: 'evidence',  label: '근거',        icon: <BookOpen size={13} /> },
   ];
 
   return (
@@ -167,6 +169,7 @@ const VitaminComparator = () => {
       {activeTab === 'compare'   && <CompareTab p1={p1} p2={p2} />}
       {activeTab === 'table'     && <FullTable onSelect={handleTableSelect} />}
       {activeTab === 'recommend' && <RecommendTab onSelect={handleRecommendSelect} />}
+      {activeTab === 'evidence'  && <EvidenceTab />}
     </div>
   );
 };
