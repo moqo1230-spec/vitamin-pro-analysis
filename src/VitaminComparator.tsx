@@ -19,7 +19,8 @@ const VitaminComparator = () => {
     const a = Number(params.get('a'));
     const b = Number(params.get('b'));
     if (a && vitaminData.find(v => v.id === a)) setP1Id(a);
-    if (b && vitaminData.find(v => v.id === b)) setP2Id(b);
+    // b !== a 체크로 동일 제품 선택 방지
+    if (b && vitaminData.find(v => v.id === b) && b !== a) setP2Id(b);
   }, []);
 
   // state → URL on change
@@ -33,22 +34,37 @@ const VitaminComparator = () => {
   const p1 = vitaminData.find(v => v.id === p1Id)!;
   const p2 = vitaminData.find(v => v.id === p2Id)!;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  const switchTab = (tab: Tab) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleTableSelect = (id: number) => {
-    if (id !== p1Id && id !== p2Id) setP2Id(id);
-    setActiveTab('compare');
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 클립보드 미지원 환경: URL을 직접 보여줌
+      alert(window.location.href);
+    }
+  };
+
+  const handleSwap = () => {
+    setP1Id(p2Id);
+    setP2Id(p1Id);
+  };
+
+  const handleTableSelect = (id: number, slot: 'a' | 'b') => {
+    if (slot === 'a' && id !== p2Id) setP1Id(id);
+    if (slot === 'b' && id !== p1Id) setP2Id(id);
+    switchTab('compare');
   };
 
   const handleRecommendSelect = (id: number, slot: 'a' | 'b') => {
     if (slot === 'a') setP1Id(id);
     else setP2Id(id);
-    setActiveTab('compare');
+    switchTab('compare');
   };
 
   const TAB_ITEMS: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -58,7 +74,7 @@ const VitaminComparator = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] text-[#111827] font-sans pb-16 max-w-lg mx-auto">
+    <div className="min-h-screen bg-[#F8F9FC] text-[#111827] font-sans pb-6 max-w-lg mx-auto">
 
       {/* Header */}
       <header className="px-4 pt-5 pb-2 text-center">
@@ -82,7 +98,7 @@ const VitaminComparator = () => {
           {TAB_ITEMS.map(t => (
             <button
               key={t.key}
-              onClick={() => setActiveTab(t.key)}
+              onClick={() => switchTab(t.key)}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-colors ${
                 activeTab === t.key
                   ? 'border-blue-600 text-blue-600'
@@ -105,7 +121,7 @@ const VitaminComparator = () => {
         {/* Product selectors — compare tab only */}
         {activeTab === 'compare' && (
           <div className="px-3 pb-2 pt-1">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5 items-center" style={{ gridTemplateColumns: '1fr 28px 1fr' }}>
               <div className="bg-white rounded-xl p-2.5 border border-[#E8EAF0] border-l-2 border-l-blue-500">
                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mb-1">제품 A</p>
                 <select
@@ -119,6 +135,16 @@ const VitaminComparator = () => {
                 </select>
                 <p className="text-[9px] text-gray-400 mt-0.5">{p1.maker} · {p1.dailyDose}</p>
               </div>
+
+              {/* A↔B 스왑 버튼 */}
+              <button
+                onClick={handleSwap}
+                title="A↔B 교체"
+                className="flex items-center justify-center w-7 h-7 rounded-lg bg-white border border-[#E8EAF0] text-gray-300 hover:text-blue-600 hover:border-blue-300 transition-colors"
+              >
+                <ArrowLeftRight size={12} />
+              </button>
+
               <div className="bg-white rounded-xl p-2.5 border border-[#E8EAF0] border-l-2 border-l-amber-500">
                 <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest mb-1">제품 B</p>
                 <select

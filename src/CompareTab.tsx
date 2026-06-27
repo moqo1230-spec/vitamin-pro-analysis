@@ -117,12 +117,12 @@ function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, gl
         {isText ? (
           <div className="px-2 py-2.5 text-center border-l border-[#E8EAF0]">
             <p className={`text-[10px] leading-tight ${isActive(t1) ? 'text-blue-700' : 'text-gray-400'}`}>
-              {t1 || '—'}<ActiveBadge s={t1} />
+              {(!t1 || t1 === '미함유') ? '—' : t1}<ActiveBadge s={t1} />
             </p>
           </div>
         ) : (
           <div className="px-3 py-2.5 border-l border-[#E8EAF0]">
-            <p className="text-sm font-semibold" style={{ color: (v1 ?? 0) >= (v2 ?? 0) && (v1 ?? 0) > 0 ? BLUE : '#9CA3AF' }}>
+            <p className="text-sm font-semibold" style={{ color: (v1 ?? 0) > (v2 ?? 0) ? BLUE : '#9CA3AF' }}>
               {(v1 ?? 0) > 0 ? `${v1}` : '—'}
               {(v1 ?? 0) > 0 && <span className="text-[9px] font-normal text-gray-400 ml-0.5">{unit}</span>}
               {(v1 ?? 0) > (v2 ?? 0) && (v1 ?? 0) > 0 && <span className="text-[10px] ml-0.5" style={{ color: BLUE }}> ↑</span>}
@@ -134,12 +134,12 @@ function CompareRow({ label, sub, guideKey, expanded, onToggle, v1, v2, unit, gl
         {isText ? (
           <div className="px-2 py-2.5 text-center border-l border-[#E8EAF0]">
             <p className={`text-[10px] leading-tight ${isActive(t2) ? 'text-amber-700' : 'text-gray-400'}`}>
-              {t2 || '—'}<ActiveBadge s={t2} />
+              {(!t2 || t2 === '미함유') ? '—' : t2}<ActiveBadge s={t2} />
             </p>
           </div>
         ) : (
           <div className="px-3 py-2.5 border-l border-[#E8EAF0]">
-            <p className="text-sm font-semibold" style={{ color: (v2 ?? 0) >= (v1 ?? 0) && (v2 ?? 0) > 0 ? AMBER : '#9CA3AF' }}>
+            <p className="text-sm font-semibold" style={{ color: (v2 ?? 0) > (v1 ?? 0) ? AMBER : '#9CA3AF' }}>
               {(v2 ?? 0) > 0 ? `${v2}` : '—'}
               {(v2 ?? 0) > 0 && <span className="text-[9px] font-normal text-gray-400 ml-0.5">{unit}</span>}
               {(v2 ?? 0) > (v1 ?? 0) && (v2 ?? 0) > 0 && <span className="text-[10px] ml-0.5" style={{ color: AMBER }}> ↑</span>}
@@ -165,6 +165,12 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef  = useRef<InstanceType<typeof Chart> | null>(null);
 
+  // 언마운트 시에만 차트 파괴 (p1/p2 변경 시 파괴 방지)
+  useEffect(() => {
+    return () => { chartRef.current?.destroy(); chartRef.current = null; };
+  }, []);
+
+  // p1/p2 변경 시 차트 생성 또는 업데이트
   useEffect(() => {
     if (!canvasRef.current) return;
     const d1 = getRadarValues(p1);
@@ -222,8 +228,6 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
         },
       },
     });
-
-    return () => { chartRef.current?.destroy(); chartRef.current = null; };
   }, [p1, p2]);
 
   // B12 chip helper
@@ -282,7 +286,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className={`text-[10px] leading-tight ${isActive(p1.b1_info) ? 'text-blue-700' : 'text-gray-400'}`}>
                 {p1.b1_info}<ActiveBadge s={p1.b1_info} />
               </p>
-              <p className="text-sm font-semibold mt-1" style={{ color: p1.b1_total >= p2.b1_total ? BLUE : '#9CA3AF' }}>
+              <p className="text-sm font-semibold mt-1" style={{ color: p1.b1_total > p2.b1_total ? BLUE : '#9CA3AF' }}>
                 {p1.b1_total}mg{p1.b1_total > p2.b1_total && <span className="text-[10px] ml-0.5" style={{ color: BLUE }}> ↑</span>}
               </p>
               <MiniBar val={p1.b1_total} maxVal={MAX_VALS.b1_total} color={BLUE} />
@@ -291,7 +295,7 @@ export default function CompareTab({ p1, p2 }: { p1: VitaminProduct; p2: Vitamin
               <p className={`text-[10px] leading-tight ${isActive(p2.b1_info) ? 'text-amber-700' : 'text-gray-400'}`}>
                 {p2.b1_info}<ActiveBadge s={p2.b1_info} />
               </p>
-              <p className="text-sm font-semibold mt-1" style={{ color: p2.b1_total >= p1.b1_total ? AMBER : '#9CA3AF' }}>
+              <p className="text-sm font-semibold mt-1" style={{ color: p2.b1_total > p1.b1_total ? AMBER : '#9CA3AF' }}>
                 {p2.b1_total}mg{p2.b1_total > p1.b1_total && <span className="text-[10px] ml-0.5" style={{ color: AMBER }}> ↑</span>}
               </p>
               <MiniBar val={p2.b1_total} maxVal={MAX_VALS.b1_total} color={AMBER} />
